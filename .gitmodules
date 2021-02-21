@@ -1,0 +1,3 @@
+[submodule "mini-react"]
+	path = mini-react
+	url = ../mini-react
