@@ -3,4 +3,4 @@
 	url = ../mini-react
 [submodule "Fiber"]
 	path = Fiber
-	url = ../Fiber
+	url = ../React-Fiber
