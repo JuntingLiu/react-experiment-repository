@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>requestIdleCallback API 使用</title>
+  <style>
+    #box {
+      padding: 20px;
+      background-color: palevioletred;
+    }
+  </style>
+</head>
+<body>
+  <div id="box"></div>
+  <button id="btn1">执行计算任务</button>
+  <button id="btn2">更改背景色</button>
+
+  <script>
+    const $box = document.querySelector('#box')
+    const $btn1 = document.querySelector('#btn1')
+    const $btn2 = document.querySelector('#btn2')
+
+    let number = 99999
+    let value = 0
+
+    function calc (deadline) {
+      // 获取浏览器空余时间 > 1ms 才会执行以下任务
+      while (number > 0 && deadline.timeRemaining() > 1) {
+        value = Math.random() < 0.5 ? Math.random() : Math.random
+        console.log(value);
+        number--
+      }
+      // 执行优先级更高的任务时，当前计算任务会被终止，执行完优先级任务后再次执行计算任务
+      requestIdleCallback(calc)
+    }
+
+    $btn1.onclick = function () {
+      requestIdleCallback(calc)
+    }
+
+    $btn2.onclick = function () {
+      $box.style.backgroundColor = "orange"
+    }
+  </script>
+</body>
+</html>
