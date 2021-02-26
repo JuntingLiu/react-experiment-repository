@@ -66,7 +66,8 @@ const executeTask = fiber => {
   // 当前执行的 fiber
   let currentlyExecutedFiber = fiber
 
-  // 有同级返回同级, 没有返回到父级
+  // 如果存在同级返回同级, 构建同级的子级，
+  // 如果同级不存在，返回到父级，看父级是否有同级
   while(currentlyExecutedFiber.parent) {
     // 汇总所有节点 fiber 对象到最外层 effects 数组里(逐层收集)
     currentlyExecutedFiber.parent.effects = currentlyExecutedFiber.parent.effects.concat(currentlyExecutedFiber.effects.concat(currentlyExecutedFiber))
