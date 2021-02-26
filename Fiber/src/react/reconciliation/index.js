@@ -1,4 +1,4 @@
-import { CreateTaskQueue, arrified } from '../Misc'
+import { CreateTaskQueue, arrified, createStateNode, getTag } from '../Misc'
 
 const taskQueue = CreateTaskQueue()
 let subTask = null
@@ -32,12 +32,15 @@ const reconcileChildren = (fiber, children) => {
     newFiber = {
       type: element.type,
       props: element.props,
-      tag: "host_component",
+      tag: getTag(element),
       effects: [],
       effectTag: "placement", // 类型标示，表示操作
-      stateNode: null,
       parent: fiber
     }
+
+    // stateNode 属性值取决与节点的类型，存在多种情况
+    newFiber.stateNode = createStateNode(newFiber)
+
     // 判断是否第一个子节点;
     if (index === 0) {
       // 设置父级节点的第一个子节点
@@ -55,8 +58,25 @@ const reconcileChildren = (fiber, children) => {
 const executeTask = fiber => {
   // 构建子节点
   reconcileChildren(fiber, fiber.props.children)
-  // if ()
-  console.log(fiber);
+  // 有子级返回子
+  if (fiber.child) {
+    return fiber.child
+  }
+
+  // 当前执行的 fiber
+  let currentlyExecutedFiber = fiber
+
+  // 有同级返回同级, 没有返回到父级
+  while(currentlyExecutedFiber.parent) {
+    // 汇总所有节点 fiber 对象到最外层 effects 数组里(逐层收集)
+    currentlyExecutedFiber.parent.effects = currentlyExecutedFiber.parent.effects.concat(currentlyExecutedFiber.effects.concat(currentlyExecutedFiber))
+    if (currentlyExecutedFiber.sibling) {
+      return currentlyExecutedFiber.sibling
+    }
+    currentlyExecutedFiber = currentlyExecutedFiber.parent
+  }
+
+  console.log(fiber)
 }
 
 const workLoop = (deadline) => {
