@@ -1,4 +1,4 @@
-import React, { render } from './react'
+import React, { render, Component } from './react'
 
 const root = document.getElementById('root');
 
@@ -9,6 +9,22 @@ const jsx = (
   </div>
 )
 
-console.log('Virtual DOM: ', jsx);
+class Greating extends Component {
+  constructor (props) {
+    super(props)
+  }
 
-render(jsx, root)
+  render () {
+    return (
+      <div>
+        React Class Component - {this.props.title}
+      </div>
+    )
+  }
+}
+
+function FnComponent (props) {
+  return <div>FnComponent - {this.props.title}</div>
+}
+
+render(<FnComponent title="Fiber! " />, root)

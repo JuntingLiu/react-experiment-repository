@@ -1,5 +1,6 @@
 import { CreateTaskQueue, arrified, createStateNode, getTag } from '../Misc'
 
+
 // 任务队列
 const taskQueue = CreateTaskQueue()
 // 要执行的子任务
@@ -8,10 +9,21 @@ let subTask = null
 let pendingCommit = null
 
 const commitAllWork = fiber => {
-  console.log(fiber.effects);
   fiber.effects.forEach(item => {
     if (item.effectTag === 'placement') {
-      item.parent.stateNode.appendChild(item.stateNode)
+      let fiber = item
+      let parentFiber = item.parent
+
+      while(
+        parentFiber.tag === 'class_component' ||
+        parentFiber.tag === 'function_component'
+      ) {
+        parentFiber = parentFiber.parent
+      }
+
+      if (fiber.tag === 'host_component') {
+        parentFiber.stateNode.appendChild(item.stateNode)
+      }
     }
   })
 }
@@ -70,7 +82,13 @@ const reconcileChildren = (fiber, children) => {
 
 const executeTask = fiber => {
   // 构建子节点
-  reconcileChildren(fiber, fiber.props.children)
+  if (fiber.tag === 'class_component') {
+    reconcileChildren(fiber, fiber.stateNode.render())
+  } else if (fiber.tag === 'function_component') {
+    reconcileChildren(fiber, fiber.stateNode(fiber.props))
+  } else {
+    reconcileChildren(fiber, fiber.props.children)
+  }
   // 有子级返回子,使任务进行时都是从最底层子级开始倒序进行
   if (fiber.child) {
     return fiber.child
