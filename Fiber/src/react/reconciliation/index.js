@@ -1,4 +1,5 @@
-import { CreateTaskQueue, arrified, createStateNode, getTag } from '../Misc'
+import { updateNodeElement } from '../DOM'
+import { CreateTaskQueue, arrified, createStateNode, getTag, getRoot } from '../Misc'
 
 
 // 任务队列
@@ -9,8 +10,25 @@ let subTask = null
 let pendingCommit = null
 
 const commitAllWork = fiber => {
+  // 循环 effects 数组构建 DOM 节点树
   fiber.effects.forEach(item => {
-    if (item.effectTag === 'placement') {
+    if (item.tag === 'class_component') {
+      item.stateNode.__fiber = item
+    }
+
+    if (item.effectTag === 'delete') {
+      item.parent.stateNode.removeChild(item.stateNode)
+    }
+    else if (item.effectTag === 'update') {
+      if (item.type === item.alternate.type) {
+        // 节点类型相同
+        updateNodeElement(item.stateNode, item, item.alternate)
+      } else {
+        // 节点类型不同
+        item.parent.stateNode.replaceChild(item.stateNode, item.alternate.stateNode)
+      }
+    }
+    else if (item.effectTag === 'placement') {
       let fiber = item
       let parentFiber = item.parent
 
@@ -26,18 +44,37 @@ const commitAllWork = fiber => {
       }
     }
   })
+  // 备份旧的 fiber 节点对象
+  fiber.stateNode.__rootFiberContainer = fiber;
 }
 
 const getFirstTask = () => {
   // 从任务队列中获取任务（Virtual DOM）
   const task = taskQueue.pop()
+
+  // 查看是否是组件状态更新任务
+  if (task.from === "class_component") {
+    const root = getRoot(task.instance)
+    task.instance.__fiber.partialState = task.partialState
+
+    return {
+      props: root.props,
+      stateNode: root.stateNode,
+      tag: 'host_root',
+      effects: [],
+      child: null,
+      alternate: root
+    }
+  }
+
   // 返回最外层节点的 fiber 对象（构建 fiber 对象）
   return {
     props: task.props,
     stateNode: task.dom, // 最外层节点 DOM 对象
     tag: "host_root", // 节点标记区分类型
     effects: [],
-    child: null
+    child: null,
+    alternate: task.dom.__rootFiberContainer // 备份节点
   }
 }
 
@@ -46,33 +83,72 @@ const reconcileChildren = (fiber, children) => {
   const arrifiedChildren = arrified(children)
 
   let index = 0 // 循环终止条件
-  let numberOfElements = arrifiedChildren.length
-  let element = null
-  let newFiber = null
-  let prevFiber = null // 上一个节点
+  let numberOfElements = arrifiedChildren.length // children 数组中元素的个数
+  let element = null // 循环过程中的循环项，就是子节点的 virtualDOM 对象
+  let newFiber = null // 子级 fiber 对象
+  let prevFiber = null // 上一个兄弟 fiber 对象
+  let alternate = null
+
+  if (fiber.alternate && fiber.alternate.child) {
+    alternate = fiber.alternate.child
+  }
 
   // 递归子节点
-  while(index < numberOfElements) {
+  while(index < numberOfElements || alternate) {
+    // 子级 virtual DOM 对象
     element = arrifiedChildren[index]
-    newFiber = {
-      type: element.type,
-      props: element.props,
-      tag: getTag(element),
-      effects: [],
-      effectTag: "placement", // 类型标示，表示操作
-      parent: fiber
-    }
 
-    // stateNode 属性值取决与节点的类型，存在多种情况
-    newFiber.stateNode = createStateNode(newFiber)
+    if (!element && alternate) {
+      // 删除操作
+      alternate.effectTag = 'delete'
+      fiber.effects.push(alternate)
+    } else if (element && alternate) {
+      // 更新
+      newFiber = {
+        type: element.type,
+        props: element.props,
+        tag: getTag(element),
+        effects: [],
+        effectTag: "update", // 类型标示，表示操作
+        parent: fiber,
+        alternate
+      }
+
+      // stateNode 属性值取决与节点的类型，存在多种情况
+      if (element.type === alternate.type) {
+        // 类型相同
+        newFiber.stateNode = alternate.stateNode
+      } else {
+        // 类型不同
+        newFiber.stateNode = createStateNode(newFiber)
+      }
+    } else if (element && !alternate){
+      // 初始渲染
+      newFiber = {
+        type: element.type,
+        props: element.props,
+        tag: getTag(element),
+        effects: [],
+        effectTag: "placement", // 类型标示，表示操作
+        parent: fiber
+      }
+      // stateNode 属性值取决与节点的类型，存在多种情况
+      newFiber.stateNode = createStateNode(newFiber)
+    }
 
     // 判断是否第一个子节点;
     if (index === 0) {
       // 设置父级节点的第一个子节点
       fiber.child = newFiber
-    } else {
+    } else if (element) {
       // 对于不是第一个子节点，就让后续的子节点成为第一个子节点的兄弟节点属性上
       prevFiber.sibling = newFiber
+    }
+
+    if (alternate && alternate.sibling) {
+      alternate = alternate.sibling
+    } else {
+      alternate = null
     }
 
     prevFiber = newFiber
@@ -83,6 +159,13 @@ const reconcileChildren = (fiber, children) => {
 const executeTask = fiber => {
   // 构建子节点
   if (fiber.tag === 'class_component') {
+    // 类组件状态更新
+    if (fiber.stateNode.__fiber && fiber.stateNode.__fiber.partialState) {
+      fiber.stateNode.state = {
+        ...fiber.stateNode.state,
+        ...fiber.stateNode.__fiber.partialState
+      }
+    }
     reconcileChildren(fiber, fiber.stateNode.render())
   } else if (fiber.tag === 'function_component') {
     reconcileChildren(fiber, fiber.stateNode(fiber.props))
@@ -154,5 +237,14 @@ export const render = (element, dom) => {
   })
 
   // 指定浏览器在空闲时间执行任务
+  requestIdleCallback(performTask)
+}
+
+export const scheduleUpdate = (instance, partialState) => {
+  taskQueue.push({
+    from: "class_component",  // 区分
+    instance,
+    partialState
+  })
   requestIdleCallback(performTask)
 }
