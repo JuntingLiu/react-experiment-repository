@@ -4,8 +4,8 @@ const root = document.getElementById('root');
 
 const jsx = (
   <div>
-    <p>Hello React Fiber</p>
-    <p>Hello React Fiber2</p>
+    {/* <p>Hello React Fiber</p>
+    <p>Hello React Fiber2</p> */}
   </div>
 )
 

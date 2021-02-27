@@ -1,7 +1,20 @@
 import { CreateTaskQueue, arrified, createStateNode, getTag } from '../Misc'
 
+// 任务队列
 const taskQueue = CreateTaskQueue()
+// 要执行的子任务
 let subTask = null
+// 等待并提交
+let pendingCommit = null
+
+const commitAllWork = fiber => {
+  console.log(fiber.effects);
+  fiber.effects.forEach(item => {
+    if (item.effectTag === 'placement') {
+      item.parent.stateNode.appendChild(item.stateNode)
+    }
+  })
+}
 
 const getFirstTask = () => {
   // 从任务队列中获取任务（Virtual DOM）
@@ -58,7 +71,7 @@ const reconcileChildren = (fiber, children) => {
 const executeTask = fiber => {
   // 构建子节点
   reconcileChildren(fiber, fiber.props.children)
-  // 有子级返回子
+  // 有子级返回子,使任务进行时都是从最底层子级开始倒序进行
   if (fiber.child) {
     return fiber.child
   }
@@ -68,6 +81,7 @@ const executeTask = fiber => {
 
   // 如果存在同级返回同级, 构建同级的子级，
   // 如果同级不存在，返回到父级，看父级是否有同级
+  // 收集机制，倒序收集, 从左侧最后一个节点开始收集
   while(currentlyExecutedFiber.parent) {
     // 汇总所有节点 fiber 对象到最外层 effects 数组里(逐层收集)
     currentlyExecutedFiber.parent.effects = currentlyExecutedFiber.parent.effects.concat(currentlyExecutedFiber.effects.concat(currentlyExecutedFiber))
@@ -76,8 +90,7 @@ const executeTask = fiber => {
     }
     currentlyExecutedFiber = currentlyExecutedFiber.parent
   }
-
-  console.log(fiber)
+  pendingCommit = currentlyExecutedFiber
 }
 
 const workLoop = (deadline) => {
@@ -90,6 +103,10 @@ const workLoop = (deadline) => {
   // executeTask 方法执行接收的任务，并返回新任务
   while (subTask && deadline.timeRemaining() > 1) {
     subTask = executeTask(subTask)
+  }
+
+  if(pendingCommit) {
+    commitAllWork(pendingCommit)
   }
 }
 
