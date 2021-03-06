@@ -4,3 +4,6 @@
 [submodule "Fiber"]
 	path = Fiber
 	url = ../React-Fiber
+[submodule "ReactAndMobx"]
+	path = ReactAndMobx
+	url = ../ReactAndMobx
