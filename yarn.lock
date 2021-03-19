@@ -28,6 +28,23 @@ loose-envify@^1.4.0:
   dependencies:
     js-tokens "^3.0.0 || ^4.0.0"
 
+mobx-react-lite@^3.2.0:
+  version "3.2.0"
+  resolved "https://registry.npm.taobao.org/mobx-react-lite/download/mobx-react-lite-3.2.0.tgz#331d7365a6b053378dfe9c087315b4e41c5df69f"
+  integrity sha1-Mx1zZaawUzeN/pwIcxW05Bxd9p8=
+
+mobx-react@^7.1.0:
+  version "7.1.0"
+  resolved "https://registry.npm.taobao.org/mobx-react/download/mobx-react-7.1.0.tgz#d947cada3cfad294b4b6f692e969c242b9c16eaf"
+  integrity sha1-2UfK2jz60pS0tvaS6WnCQrnBbq8=
+  dependencies:
+    mobx-react-lite "^3.2.0"
+
+mobx@^6.1.8:
+  version "6.1.8"
+  resolved "https://registry.npm.taobao.org/mobx/download/mobx-6.1.8.tgz#5d03cb76d8f7694dd82bfb2578d886945b66450d"
+  integrity sha1-XQPLdtj3aU3YK/sleNiGlFtmRQ0=
+
 object-assign@^4.1.1:
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/object-assign/-/object-assign-4.1.1.tgz#2109adc7965887cfc05cbbd442cac8bfbb360863"
