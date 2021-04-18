@@ -11,6 +11,18 @@ function App() {
   const [count, setCount] = useState(0)
   const [name, setName] = useState('张三')
 
+  function reducer(state, action) {
+    switch (action.type) {
+      case 'increment':
+        return state + 1;
+      case 'decrement':
+        return state - 1;
+      default:
+        return state;
+    }
+  }
+  const [count2, dispatch] = useReducer(reducer, 0)
+
   useEffect(() => {
     console.log('useEffect change - count');
   }, [count]);
@@ -26,6 +38,11 @@ function App() {
         <button onClick={() => setCount(count + 1)}>+1</button>
         {name}
         <button onClick={() => setName('李四')}>change name</button>
+      </div>
+      <div>
+        <button onClick={() => dispatch({type: 'increment'})}>+1</button>
+        {count2}
+        <button onClick={() => dispatch({type: 'decrement'})}>-1</button>
       </div>
       </div>
     </div>
@@ -94,4 +111,14 @@ function render () {
   stateIndex = 0;
   effectIndex = 0;
   ReactDOM.render(<App />, document.getElementById('root'))
+}
+
+function useReducer(reducer, initialState) {
+  const [state, setState] = useState(initialState)
+
+  function dispatch (action) {
+    const newState = reducer(state, action);
+    setState(newState)
+  }
+  return [state, dispatch]
 }
